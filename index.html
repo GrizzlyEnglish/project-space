@@ -33,52 +33,67 @@
                 constructor(w, h) {
                     this.Width = w;
                     this.Height = h;
-
                     this.SkyBox = {
                         minX: -100,
                         minY: -100,
                         maxX: w + 100,
                         maxY: h + 100
                     };
-
-                    this.rebound = () => {
-                        let w = this.Width;
-                        let h = this.Height;
-                        this.Particles.forEach(p => {
-                            if(p.r > 2 || p.r < 0) {
-                                p.reset(w,h);
-                            } else {
-                                if(p.x < 0) p.x += w;
-                                else if(p.x > w) p.x -= w;
-
-                                if(p.y < 0) p.y += h;
-                                else if(p.y > h) p.y -= h;
-                            }
-                        });
-                    };
-
-                    this.generateParticles = () => {
-                        var arr = [];
-                        let w = this.Width;
-                        let h = this.Height;
-                        for(var i = 0; i < 200; i++){
-                            arr.push(new Particle(w,h));
-                        }
-                        return arr;
-                    };
-
+                    this.centerMass = null;
                     this.Polarized = false;
-
                     this.Particles = this.generateParticles();
-
-                    this.addParticle = (p) => {
-                        this.Particles.push(p);
-                    }
-
-                    this.removeParticle = (i) => {
-                        this.Particles = this.Particles.splice(i, 1);
-                    }
                 }
+
+                generateParticles() {
+                    var arr = [];
+                    let w = this.Width;
+                    let h = this.Height;
+                    for(var i = 0; i < 200; i++){
+                        arr.push(new Particle(w,h));
+                    }
+                    return arr;
+                };
+
+                distance(x,y,x2,y2){
+                    return Math.sqrt(Math.pow(x2-x, 2) + Math.pow(y2-y,2));
+                }
+
+                update(){
+                    if(this.centerMass == null) return;
+
+                    var cm = this.centerMass;
+                    this.Particles.forEach(p => {
+                        var dist = this.distance(p.x, p.y, cm.x, cm.y);
+                        if(dist < 20){
+                            p.pullTowards(cm.x, cm.y);
+                        }
+                    });
+                };
+
+                removeParticle(i){
+                    this.Particles = this.Particles.splice(i, 1);
+                }
+
+                addParticle(p){
+                    this.Particles.push(p);
+                };
+
+                rebound(){
+                    let w = this.Width;
+                    let h = this.Height;
+                    this.Particles.forEach(p => {
+                        if(p.r > 2 || p.r < 0) {
+                            p.reset(w,h);
+                        } else {
+                            if(p.x < 0) p.x += w;
+                            else if(p.x > w) p.x -= w;
+
+                            if(p.y < 0) p.y += h;
+                            else if(p.y > h) p.y -= h;
+                        }
+                    });
+                };
+
             }
 
             class Particle {
@@ -158,7 +173,21 @@
                         this.r+=.01;
                     }
 
-                    this.move = (xDist,yDist) => {
+                    this.pullTowards = (x2, y2) => {
+                        if(this.x > x2) {
+                            this.x--;
+                        } else {
+                            this.x++;
+                        }
+
+                        if(this.y > y2){
+                            this.y--;
+                        } else {
+                            this.y++;
+                        }
+                    };
+
+                    this.move = (xDist, yDist) => {
                         this.x += xDist;
                         this.y += yDist;
                     }
@@ -267,7 +296,12 @@
             };
 
             document.onmousedown = function(e) {
-                environment.Polarized = !environment.Polarized;
+                environment.Polarized = true;
+                environment.centerMass = mouse.Current;
+            };
+
+            document.onmouseup = function(e) {
+                environment.Polarized = false;
             };
 
             document.addEventListener('wheel', function(){ 
@@ -295,16 +329,7 @@
             };
 
             function update(){
-                var dist = mouse.getDistance();
-                var zoomed = mouse.getZoomed();
-                environment.Particles.forEach(element => {
-                    if(environment.Polarized) {
-                        element.move(dist.x, dist.y);
-                        if(zoomed) element.zoom();
-
-                        environment.rebound();
-                    }
-                });
+                environment.update();
             };
 
             function draw(){
