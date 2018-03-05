@@ -64,7 +64,7 @@
                     var cm = this.centerMass;
                     this.Particles.forEach(p => {
                         var dist = this.distance(p.x, p.y, cm.x, cm.y);
-                        if(dist < 20){
+                        if(dist < 200){
                             p.pullTowards(cm.x, cm.y);
                         }
                     });
@@ -96,102 +96,109 @@
 
             }
 
-            class Particle {
+            class Body {
+                constructor(maxW, maxH){
+                    this.position = new Coordinates(Math.random() * maxW, Math.random() * maxH);
+                    this.r = this.genRadius();
+                    this.mass = this.r * (1 + Math.random());
+                };
+
+                genRadius() {
+                    return Math.random() > .3 ? (Math.random() + 1) : Math.random() + 1.5;
+                };
+            }
+
+            class Particle extends Body {
                 constructor(w,h) {
-                    this.x = Math.random() * w;
-                    this.y = Math.random() * h;
-
-                    this.genRadius = () => Math.random() > .3 ? (Math.random() + 1) : Math.random() + 1.5;
-                    this.genRadius2 = () => {
-                        var add = this.r * .5;
-                        if(add < 2) add = 2;
-                        return this.r + add;
-                    }
-
-                    this.r = Math.floor(this.genRadius());
-                    this.r2 = Math.floor(this.genRadius2());
-
-                    this.reset = (w,h) => {
-                        this.x = Math.random() * w;
-                        this.y = Math.random() * h;
-                        this.r = this.genRadius();
-                    }
-
-                    this.left = () => this.x - r/2;
-                    this.right = () => this.x + r/2;
-                    this.bottom = () => this.y - r/2;
-                    this.top = () => this.y + r/2;
-
-                    this.randomColor = () => {
-                        var test = parseInt(Math.random() * 3);
-                        if(test == 0) {
-                            //yellow
-                            return {
-                                r: 255,
-                                b: Math.floor(Math.random() * 255),
-                                g: 255
-                            }
-                        } else if(test == 1){
-                            //blue
-                            return {
-                                r: Math.floor(Math.random() * 255),
-                                b: Math.floor(Math.random() * 255),
-                                g: 0
-                            }
-                        } else {
-                            //red
-                            return {
-                                r: Math.floor(Math.random() * 255),
-                                b: 0,
-                                g: 0
-                            }
-                        }
-                    }
+                    super(w,h);
 
                     this.shadowCounter = 0;
-                    this.hasShadaow = () => {
-                        if(this.shadowCounter > 0){
-                            this.shadowCounter--;
-                        } else {
-                            this.shadowCounter = Math.random() < .2 ? 6 : 0;
-                        }
-                        return false;
-                    };
-
-
                     this.alphaDiff = Math.random() * .005;                    
                     this.alpha = Math.random() * .5;
-
                     this.color = this.randomColor();
+                    this.r2 = this.r + 1.5;
+                };
 
-                    this.getHexStr = () => 'rgba(' + this.color.r + ',' + this.color.g + ',' + this.color.b + ', 1)';
-                    this.getAlphaStr = () => {
-                        return 'rgba(' + this.color.r + ',' + this.color.g + ',' + this.color.b + ',' + this.alpha + ')';
-                    };
-
-                    this.zoom = () => {
-                        this.r+=.01;
+                draw(ctx){
+                    if(this.hasShadaow()){
+                        ctx.beginPath();
+                        ctx.arc(this.position.x, this.position.y, this.r2, 0, 360);
+                        ctx.fillStyle = this.getAlphaStr();
+                        ctx.fill();
                     }
 
-                    this.pullTowards = (x2, y2) => {
-                        if(this.x > x2) {
-                            this.x--;
-                        } else {
-                            this.x++;
-                        }
+                    ctx.beginPath();
+                    ctx.arc(this.position.x, this.position.y, this.r, 0, 360);
+                    ctx.fillStyle = this.getHexStr();
+                    ctx.fill();
+                };
 
-                        if(this.y > y2){
-                            this.y--;
-                        } else {
-                            this.y++;
+                randomColor() {
+                    var test = parseInt(Math.random() * 3);
+                    if(test == 0) {
+                        //yellow
+                        return {
+                            r: 255,
+                            b: Math.floor(Math.random() * 255),
+                            g: 255
                         }
-                    };
-
-                    this.move = (xDist, yDist) => {
-                        this.x += xDist;
-                        this.y += yDist;
+                    } else if(test == 1){
+                        //blue
+                        return {
+                            r: Math.floor(Math.random() * 255),
+                            b: Math.floor(Math.random() * 255),
+                            g: 0
+                        }
+                    } else {
+                        //red
+                        return {
+                            r: Math.floor(Math.random() * 255),
+                            b: 0,
+                            g: 0
+                        }
                     }
-                }
+                };
+
+                hasShadaow(){
+                    if(this.shadowCounter > 0){
+                        this.shadowCounter--;
+                    } else {
+                        this.shadowCounter = Math.random() < .2 ? 60 : 0;
+                    }
+                    return this.shadowCounter > 0;
+                };
+
+                getHexStr() {
+                    return 'rgba(' + this.color.r + ',' + this.color.g + ',' + this.color.b + ', 1)';
+                };
+
+                getAlphaStr() {
+                    return 'rgba(' + this.color.r + ',' + this.color.g + ',' + this.color.b + ',' + this.alpha + ')';
+                };
+
+                zoom() {
+                    this.r+=.01;
+                };
+
+                move (xDist, yDist) {
+                    this.x += xDist;
+                    this.y += yDist;
+                };
+
+                pullTowards(x2, y2) {
+                    if(this.x > x2) {
+                        this.x--;
+                    } else {
+                        this.x++;
+                    }
+
+                    if(this.y > y2){
+                        this.y--;
+                    } else {
+                        this.y++;
+                    }
+                };
+
             }
 
             class Coordinates {
@@ -297,7 +304,7 @@
 
             document.onmousedown = function(e) {
                 environment.Polarized = true;
-                environment.centerMass = mouse.Current;
+                environment.centerMass = new Coordinates(mouse.Current.x, mouse.Current.y);
             };
 
             document.onmouseup = function(e) {
@@ -338,17 +345,7 @@
 
                 for(var c = 0; c < environment.Particles.length; c++) {
                     var p = environment.Particles[c];
-                    if(p.hasShadaow()){
-                        grizContext.beginPath();
-                        grizContext.arc(p.x, p.y, p.r2, 0, 360);
-                        grizContext.fillStyle = p.getAlphaStr();
-                        grizContext.fill();
-                    }
-
-                    grizContext.beginPath();
-                    grizContext.arc(p.x, p.y, p.r, 0, 360);
-                    grizContext.fillStyle = p.getHexStr();
-                    grizContext.fill();
+                    p.draw(grizContext);   
                 }
             };
 
